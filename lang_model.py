@@ -2,14 +2,33 @@
 Luis Contreras-Orendain
 CMSC 208 - Final Project
 
+>>> import time
+>>> start = time.process_time()
 
-### Test suite
->>> data = read_data()
->>> data[:100]
+#Read in data
+>>> mydata = read_data()
 
-Preprocess data
->>> processed_data = preprocess(data)
->>> processed_data[:100]
+#Preprocess it: No capital letters and no punctuation.
+>>> processed_data = preprocess(mydata)
+>>> len(processed_data)
+
+# getting bigram and unigram counts
+>>> bigrams = faster_creation(get_bigrams, processed_data, 10000)
+>>> unigrams = get_unigrams(processed_data)
+
+# building the model
+>>> model = bigram_model(bigrams, unigrams)
+
+>>> gs = generate_sentence(model, "harry", 50)
+>>> gs
+
+
+
+#>>> bigramModel = bigram_model(processed_data)
+>>> end = time.process_time()
+
+>>> print(end-start)
+
 
 # read in data
 '''
@@ -21,7 +40,7 @@ def read_data():
     files = [1,2,3,4,5,6,7]
     for i in files:
         f = open(path+str(i),"r", encoding="utf-8").read()
-        f = re.sub('([,!?()])',r' \1 ', f)
+        f = re.sub('([,();{}[]:-])',r' \1 ', f)
         f = re.sub('\s{2,}', ' ', f)
         f = f.split()
         fdata += f
@@ -33,13 +52,39 @@ def preprocess(data):
     processed_data = []
     for word in data:
         if word not in [",", "-", "\"", "\"", ".", "!",":", ";", "...", "?", "{", "}", "[", "]"]:
-            if "\"" in word:
-                processed_data.append(word.lower().replace("\"", ""))
-            elif "'" in word:
-                processed_data.append(word.lower().replace("'", ""))
+            if word[-1] in [".", "?", "!"]:
+                if word[-1] == "." and word.lower()[:2] == "mr" or word.lower()[:2] == "ms":
+                    processed_data.append(word.lower())
+                else:
+                    if "\"" == word[-1]:
+                        processed_data.append(word.lower()[:-2]) 
+                        processed_data.append("SB") # indicates there is a sentence boundary.
+                    else:
+                        processed_data.append(word.lower()[:-1]) 
+                        processed_data.append("SB") # indicates there is a sentence boundary.
+            elif "," in word:
+                processed_data.append(word.lower()[:-1])
             else: 
                 processed_data.append(word.lower())
     return processed_data
+    
+# it takes a lot of time to process the functions. Split up the work.
+def faster_creation(function, data, increment):
+    remainder = len(data) % increment
+    even_data = data[:len(data) - remainder]
+    
+    output_dict = {}
+    old_index = 0
+    original_increment = increment
+    while len(even_data) >= increment:
+        slice = function(even_data[old_index:increment])
+        output_dict = { k: output_dict.get(k, 0) + slice.get(k, 0) for k in set(output_dict) | set(slice) }
+        old_index = increment - 1
+        increment += original_increment
+    
+    slice = function(data[-remainder - 1:])
+    output_dict = { k: output_dict.get(k, 0) + slice.get(k, 0) for k in set(output_dict) | set(slice) }
+    return output_dict
 
 ## returns a dictionary of unique bigram pairs and their count
 def get_bigrams(data):
@@ -63,9 +108,10 @@ def get_unigrams(data):
     unigrams = {}
     # do similar process as getting the bigrams
     for word in data:
-        unigrams[word] += 1
-    else:
-        unigrams[word] = 1
+        if word not in unigrams:
+            unigrams[word] = 1
+        else:
+            unigrams[word] += 1
     return unigrams
 
 ## returns the two dictionaries containing bigram and unigram information
@@ -81,7 +127,30 @@ def bigram_model(bigrams, unigrams):
         model[bigram] = bigrams[bigram] / unigram_count
     return model
 
+def find_max_bigram(model, word):
+    possible_bigram = {}
+    for bigram in model:
+        if bigram[0] == word:
+            possible_bigram[bigram] = model[bigram]
+	
+    vals = list(possible_bigram.values())
+    keys = list(possible_bigram.keys())
+    return keys[vals.index(max(vals))]    
 
+def generate_sentence(model, starting_word, length):
+    #Given a model and a length that is at least greater than 2, it will give back the most likely sentece based on a given starting word.
+    copy_model = model #Copying just in case
+	
+    sentence_list = [starting_word]
+    count = 0
+    while count < length:
+        #Find the bigram with the highest probability given the first word.
+        max_bigram = find_max_bigram(copy_model, sentence_list[-1])
+        sentence_list += [max_bigram[1]]
+		
+        copy_model.pop(max_bigram)
+        count += 1
+    return sentence_list
 
 def _test():
         import doctest
