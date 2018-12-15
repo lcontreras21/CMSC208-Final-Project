@@ -57,7 +57,7 @@ def preprocess(data):
 	processed_data = []
 	for word in data:
 		if word not in [",", "-", "\"", "\"", ".", "!",":", ";", "...", "?", "{", "}", "[", "]"]:
-			check_punctuation = (".", "?", "!", '."', '?"', '!"')
+			check_punctuation = (".", "?", "!", '."', '?"', '!"',":")
 			if word.endswith(check_punctuation):
 				# special case for mr ms and mrs
 				if word[-1] == "." and word.lower()[:2] == "mr" or word.lower()[:2] == "ms":
@@ -176,16 +176,18 @@ def find_all_similar_bigrams(model, word):
 	keys = list(possible_bigram.keys())
 	return keys
 
-def generate_random_sentence(model, length):
+def generate_random_sentence(model):
 	copy_model = model
 	
 	sentence_list = ["SB"]
 	count = 0
-	while count < length:
+	accoutn_first_word = False
+	while sentence_list[-1] != "SB" and start_word != False:
 		#Find the bigram with the highest probability given the first word.
 		next_possible_bigrams = find_all_similar_bigrams(copy_model, sentence_list[-1])
 		next_word = random.choice(next_possible_bigrams)[1]
 		sentence_list += [next_word]
+		start_word = True
 		count += 1
 	return sentence_list
 
