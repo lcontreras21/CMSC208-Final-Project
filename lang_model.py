@@ -9,26 +9,35 @@ CMSC 208 - Final Project
 >>> mydata = read_data()
 
 #Preprocess it: No capital letters and no punctuation.
->>> processed_data = preprocess(mydata)
->>> len(processed_data)
+#>>> processed_data = preprocess(mydata)
+#>>> len(processed_data)
 
 # getting bigram and unigram counts
->>> bigrams = faster_creation(get_bigrams, processed_data, 10000)
->>> unigrams = get_unigrams(processed_data)
+#>>> bigrams = faster_creation(get_bigrams, processed_data, 10000)
+#>>> unigrams = get_unigrams(processed_data)
 
+### To retrain the model, uncomment the next 6 inputs.
 # building the model
->>> model = bigram_model(bigrams, unigrams)
+#>>> model = bigram_model(faster_creation(get_bigrams, preprocess(mydata), 10000), get_unigrams(preprocess(mydata)))
+
+# writing the dictionary into a json file so that it doesnt take a minute to generate sentences each time.
+#>>> f = open('model.txt', 'w')
+#>>> f.write(str(model))
+#>>> f.close()
+
+### The above are testing the individual components
+# This brings it all together and makes it easier to retrain the model as well as input it into the file.
+#>>> retrain_model(mydata)
+
+>>> f = open('model.txt').read()
+>>> model = ast.literal_eval(f)
 
 >>> gls = generate_likely_sentence(model, "harry", 50)
 >>> gls
 
->>> grs = generate_random_sentence(model, 50)
->>> grs
+>>> generate_random_sentence(model)
 
-
-#>>> bigramModel = bigram_model(processed_data)
 >>> end = time.process_time()
-
 >>> print(end-start)
 
 
@@ -36,6 +45,7 @@ CMSC 208 - Final Project
 '''
 
 import random
+import ast
 
 import re
 # reading in the files as a list of words and combining them into fdata
@@ -57,7 +67,7 @@ def preprocess(data):
 	processed_data = []
 	for word in data:
 		if word not in [",", "-", "\"", "\"", ".", "!",":", ";", "...", "?", "{", "}", "[", "]"]:
-			check_punctuation = (".", "?", "!", '."', '?"', '!"',":")
+			check_punctuation = (".", "?", "!", '."', '?"', '!"',":", ";")
 			if word.endswith(check_punctuation):
 				# special case for mr ms and mrs
 				if word[-1] == "." and word.lower()[:2] == "mr" or word.lower()[:2] == "ms":
@@ -75,7 +85,7 @@ def preprocess(data):
 			elif word[0] == '"':
 				processed_data.append(word.lower().replace('"', ""))
 			else: 
-				processed_data.append(word.lower())
+				processed_data.append(word.lower().replace('"', ""))
 	return processed_data
 	
 # it takes a lot of time to process the functions. Split up the work.
@@ -136,7 +146,12 @@ def bigram_model(bigrams, unigrams):
 		unigram_count = unigrams[bigram[0]]
 		model[bigram] = bigrams[bigram] / unigram_count
 	return model
-
+	
+def retrain_model(data):
+	model = bigram_model(faster_creation(get_bigrams, preprocess(data), 10000), get_unigrams(preprocess(data)))
+	f = open('model.txt', 'w')
+	f.write(str(model))
+	f.close()
 	
 	
 ## Building sentences based on the most likely word to come next
@@ -179,15 +194,17 @@ def find_all_similar_bigrams(model, word):
 def generate_random_sentence(model):
 	copy_model = model
 	
-	sentence_list = ["SB"]
+	sentence_list = ["replace_this_with_SB"]
 	count = 0
-	accoutn_first_word = False
-	while sentence_list[-1] != "SB" and start_word != False:
+	account_first_word = False
+	while sentence_list[-1] != "SB":
+		if not account_first_word:
+			account_first_word = True
+			sentence_list[0] = "SB"
 		#Find the bigram with the highest probability given the first word.
 		next_possible_bigrams = find_all_similar_bigrams(copy_model, sentence_list[-1])
 		next_word = random.choice(next_possible_bigrams)[1]
 		sentence_list += [next_word]
-		start_word = True
 		count += 1
 	return sentence_list
 
