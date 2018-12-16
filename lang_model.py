@@ -27,13 +27,23 @@ CMSC 208 - Final Project
 
 ### The above are testing the individual components
 # This brings it all together and makes it easier to retrain the model as well as input it into the file.
-#>>> retrain_model(mydata)
+>>> retrain_model(mydata)
 
 >>> f = open('model.txt').read()
 >>> model = ast.literal_eval(f)
 
 >>> gls = generate_likely_sentence(model, "harry", 50)
 >>> gls
+
+>>> generate_random_sentence(model)
+
+>>> generate_random_sentence(model)
+
+>>> generate_random_sentence(model)
+
+>>> generate_random_sentence(model)
+
+>>> generate_random_sentence(model)
 
 >>> generate_random_sentence(model)
 
@@ -55,7 +65,9 @@ def read_data():
 	files = [1,2,3,4,5,6,7]
 	for i in files:
 		f = open(path+str(i),"r", encoding="utf-8").read()
-		f = re.sub('([,();{}[]:-])',r' \1 ', f)
+		f = re.sub('([,();{}:-])',r' \1 ', f)
+		f = re.sub('(["])',r' \1 ', f)
+		f = re.sub("(['])",r' \1 ', f)
 		f = re.sub('\s{2,}', ' ', f)
 		f = f.split()
 		fdata += f
@@ -66,26 +78,22 @@ def read_data():
 def preprocess(data):
 	processed_data = []
 	for word in data:
-		if word not in [",", "-", "\"", "\"", ".", "!",":", ";", "...", "?", "{", "}", "[", "]"]:
-			check_punctuation = (".", "?", "!", '."', '?"', '!"',":", ";")
+		if word not in [",", "-", "'", '"',":", ";", "{", "}", "(", ")"]:
+			check_punctuation = (".", "?", "!", "..")
 			if word.endswith(check_punctuation):
 				# special case for mr ms and mrs
 				if word[-1] == "." and word.lower()[:2] == "mr" or word.lower()[:2] == "ms":
 					processed_data.append(word.lower())
 				# removing end punctuation and inserting sentence boundary
 				else:
-					if '"' == word[-1]:
-						processed_data.append(word.lower()[:-2]) 
-						processed_data.append("SB") # indicates there is a sentence boundary.
+					if word[-1] in [".","?","!"]:
+						processed_data.append(word.lower()[:-1])
+						processed_data.append("SB")
 					else:
-						processed_data.append(word.lower()[:-1]) 
-						processed_data.append("SB") # indicates there is a sentence boundary.
-			elif "," in word:
-				processed_data.append(word.lower().replace(",", ""))
-			elif word[0] == '"':
-				processed_data.append(word.lower().replace('"', ""))
-			else: 
-				processed_data.append(word.lower().replace('"', ""))
+						processed_data.append(word.lower()[:-2])
+						processed_data.append("SB")
+			else:
+				processed_data.append(word.lower())
 	return processed_data
 	
 # it takes a lot of time to process the functions. Split up the work.
