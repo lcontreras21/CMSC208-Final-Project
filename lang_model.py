@@ -27,25 +27,27 @@ CMSC 208 - Final Project
 
 ### The above are testing the individual components
 # This brings it all together and makes it easier to retrain the model as well as input it into the file.
->>> retrain_model(mydata)
+#>>> retrain_model(mydata)
 
 >>> f = open('model.txt').read()
 >>> model = ast.literal_eval(f)
 
->>> gls = generate_likely_sentence(model, "harry", 50)
->>> gls
+#>>> gls = generate_likely_sentence(model, "harry", 50)
+#>>> gls
 
->>> generate_random_sentence(model)
+#>>> model = {('strange', 'just'): 0.007936507936507936, ('winky', 'remained'): 0.006711409395973154, ('at', 'uncle'): 0.0011547344110854503, ('temper', 'perhaps'): 0.018518518518518517, ('stay', 'at'): 0.06363636363636363, ('SB', 'fifth'): 4.444493827709197e-05, ('lockhart', 'speaking'): 0.0048543689320388345, ('buckbeak', 'resumed'): 0.010309278350515464}
 
->>> generate_random_sentence(model)
+>>> generate_random_sentence(model, 20)
 
->>> generate_random_sentence(model)
+#>>> generate_random_sentence(model)
 
->>> generate_random_sentence(model)
+#>>> generate_random_sentence(model)
 
->>> generate_random_sentence(model)
+#>>> generate_random_sentence(model)
 
->>> generate_random_sentence(model)
+#>>> generate_random_sentence(model)
+
+#>>> generate_random_sentence(model)
 
 >>> end = time.process_time()
 >>> print(end-start)
@@ -56,7 +58,7 @@ CMSC 208 - Final Project
 
 import random
 import ast
-
+import sys
 import re
 # reading in the files as a list of words and combining them into fdata
 def read_data():
@@ -67,7 +69,6 @@ def read_data():
 		f = open(path+str(i),"r", encoding="utf-8").read()
 		f = re.sub('([,();{}:-])',r' \1 ', f)
 		f = re.sub('(["])',r' \1 ', f)
-		f = re.sub("(['])",r' \1 ', f)
 		f = re.sub('\s{2,}', ' ', f)
 		f = f.split()
 		fdata += f
@@ -199,22 +200,42 @@ def find_all_similar_bigrams(model, word):
 	keys = list(possible_bigram.keys())
 	return keys
 
-def generate_random_sentence(model):
+def generate_random_sentence(model, length):
 	copy_model = model
 	
-	sentence_list = ["replace_this_with_SB"]
-	count = 0
+	sentence_list = ["reaplce this"]
 	account_first_word = False
-	while sentence_list[-1] != "SB":
+	count = 0
+	limit = 100
+	while sentence_list[-1] != "SB" and count < length:
 		if not account_first_word:
 			account_first_word = True
-			sentence_list[0] = "SB"
-		#Find the bigram with the highest probability given the first word.
-		next_possible_bigrams = find_all_similar_bigrams(copy_model, sentence_list[-1])
-		next_word = random.choice(next_possible_bigrams)[1]
-		sentence_list += [next_word]
-		count += 1
-	return sentence_list
+			sentence_list = []
+		###
+		# to pick the next word
+		# 1. pick a word at random
+		# 2. form the bigram from that word and the previous word
+		# 3. find the probability of that bigram
+		# 4. if that probability is smaller than a random number between 0 and 1, we keep that word. Otherwise, start over.
+		###
+		
+		if len(sentence_list) == 0:
+			all_possible_bigram_keys = list(model.keys())
+		else:
+			all_possible_bigram_keys = find_all_similar_bigrams(model, sentence_list[-1])
+		
+		found_next_word = False
+		while not found_next_word:
+			max_prob = random.random()
+			next_bigram = random.choice(all_possible_bigram_keys)	
+			if model[next_bigram] <= max_prob:
+				sentence_list.append(next_bigram[1])
+				found_next_word = True
+				count += 1
+			limit += 1
+	sentence = ' '.join(word for word in sentence_list[1:])
+	sentence = sentence.replace("SB", ".")
+	return sentence
 
 
 def _test():
