@@ -206,8 +206,8 @@ def generate_random_sentence(model, length):
 	sentence_list = ["reaplce this"]
 	account_first_word = False
 	count = 0
-	limit = 100
-	while sentence_list[-1] != "SB" and count < length:
+	limit = 0
+	while sentence_list[-1] != "SB" and count < length and limit < length:
 		if not account_first_word:
 			account_first_word = True
 			sentence_list = []
