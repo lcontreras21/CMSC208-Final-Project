@@ -32,14 +32,14 @@ CMSC 208 - Final Project
 >>> f = open('model.txt').read()
 >>> model = ast.literal_eval(f)
 
-#>>> gls = generate_likely_sentence(model, "harry", 50)
-#>>> gls
+>>> gls = generate_likely_sentence(model, 50)
+>>> gls
 
 #>>> model = {('strange', 'just'): 0.007936507936507936, ('winky', 'remained'): 0.006711409395973154, ('at', 'uncle'): 0.0011547344110854503, ('temper', 'perhaps'): 0.018518518518518517, ('stay', 'at'): 0.06363636363636363, ('SB', 'fifth'): 4.444493827709197e-05, ('lockhart', 'speaking'): 0.0048543689320388345, ('buckbeak', 'resumed'): 0.010309278350515464}
 
->>> generate_random_sentence(model, 10)
+#>>> generate_random_sentence(model)
 
->>> generate_random_sentence(model,10)
+#>>> generate_random_sentence(model)
 
 #>>> generate_random_sentence(model)
 
@@ -101,7 +101,7 @@ def preprocess(data):
 # it takes a lot of time to process the functions. Split up the work.
 def faster_creation(function, data, increment):
 	remainder = len(data) % increment
-	even_data = data[:len(data) - remainder]
+	even_data = data[:len(data) - remainder] # work with even chunks
 	
 	output_dict = {}
 	old_index = 0
@@ -122,15 +122,13 @@ def get_bigrams(data):
 	bigrams = {}
 	while len(copy_data) >= 2:
 		bigram = (copy_data[0], copy_data[1])
-
 		# if the current bigram is in the dict, add 1 to its count
 		# otherwise make a new entry and set its value to 1
 		if bigram in bigrams:
 			bigrams[bigram] += 1
-			copy_data = copy_data[1:]
 		else:
 			bigrams[bigram] = 1
-			copy_data = copy_data[1:]
+		copy_data = copy_data[1:]
 	return bigrams
 
 ## returns a dictionary of unique words and their count
@@ -144,17 +142,12 @@ def get_unigrams(data):
 			unigrams[word] += 1
 	return unigrams
 
-## returns the two dictionaries containing bigram and unigram information
-def get_counts(data):
-	return get_bigrams(data), get_unigrams(data)
-
 ## building the bigram model
 ## returns a dictionary containing each bigram and its probability
 def bigram_model(bigrams, unigrams):
 	model = {}
-	for bigram in bigrams:
-		unigram_count = unigrams[bigram[0]]
-		model[bigram] = bigrams[bigram] / unigram_count
+	for bigram in bigrams: 
+		model[bigram] = bigrams[bigram] / unigrams[bigram[0]]
 	return model
 	
 def retrain_model(data):
@@ -175,33 +168,30 @@ def find_max_bigram(model, word):
 	keys = list(possible_bigram.keys())
 	return keys[vals.index(max(vals))]	
 
-def generate_likely_sentence(model, starting_word, length):
+## building sentences based on random selection
+def generate_likely_sentence(model, length):
 	#Given a model and a length that is at least greater than 2, it will give back the most likely sentece based on a given starting word.
 	copy_model = model #Copying just in case
 	
-	sentence_list = [starting_word]
+	sentence_list = [random.choice(list(model.keys()))[0]]
 	count = 0
 	while count < length:
 		#Find the bigram with the highest probability given the first word.
 		max_bigram = find_max_bigram(copy_model, sentence_list[-1])
 		sentence_list += [max_bigram[1]]
-		
 		copy_model.pop(max_bigram)
 		count += 1
-	return sentence_list
+	sentence = ' '.join(word for word in sentence_list[1:])
+	return sentence
 	
-## building sentences based on random selection
 def find_all_similar_bigrams(model, word):
-	possible_bigram = {}
+	possible_bigrams = []
 	for bigram in model:
 		if bigram[0] == word:
-			possible_bigram[bigram] = model[bigram]
-	
-	vals = list(possible_bigram.values())
-	keys = list(possible_bigram.keys())
-	return keys
+			possible_bigrams.append(bigram)
+	return possible_bigrams
 
-def generate_random_sentence(model, length):
+def generate_random_sentence(model):
 	sentence_list = [random.choice(list(model.keys()))[0]]
 	while sentence_list[-1] != "SB":
 		try:
@@ -213,9 +203,12 @@ def generate_random_sentence(model, length):
 				raise Exception
 		except:
 			next_bigram = random.choice(list(model.keys()))
-			sentence_list.append(next_bigram[0])
+			if model[next_bigram] < max_prob:
+				sentence_list.append(next_bigram[1])
+			else:
+				pass
 	sentence = ' '.join(word for word in sentence_list[1:])
-	sentence = sentence.replace("SB", ".")
+	sentence = sentence[:-3].capitalize() + "."
 	return sentence
 
 
