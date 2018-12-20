@@ -37,9 +37,9 @@ CMSC 208 - Final Project
 
 #>>> model = {('strange', 'just'): 0.007936507936507936, ('winky', 'remained'): 0.006711409395973154, ('at', 'uncle'): 0.0011547344110854503, ('temper', 'perhaps'): 0.018518518518518517, ('stay', 'at'): 0.06363636363636363, ('SB', 'fifth'): 4.444493827709197e-05, ('lockhart', 'speaking'): 0.0048543689320388345, ('buckbeak', 'resumed'): 0.010309278350515464}
 
->>> generate_random_sentence(model, 20)
+>>> generate_random_sentence(model, 10)
 
-#>>> generate_random_sentence(model)
+>>> generate_random_sentence(model,10)
 
 #>>> generate_random_sentence(model)
 
@@ -55,7 +55,6 @@ CMSC 208 - Final Project
 
 # read in data
 '''
-
 import random
 import ast
 import sys
@@ -70,6 +69,8 @@ def read_data():
 		f = re.sub('([,();{}:-])',r' \1 ', f)
 		f = re.sub('(["])',r' \1 ', f)
 		f = re.sub('\s{2,}', ' ', f)
+		f = f.replace("...", "")
+		f = f.replace("..", "")
 		f = f.split()
 		fdata += f
 	return fdata
@@ -201,38 +202,18 @@ def find_all_similar_bigrams(model, word):
 	return keys
 
 def generate_random_sentence(model, length):
-	copy_model = model
-	
-	sentence_list = ["reaplce this"]
-	account_first_word = False
-	count = 0
-	limit = 0
-	while sentence_list[-1] != "SB" and count < length and limit < length:
-		if not account_first_word:
-			account_first_word = True
-			sentence_list = []
-		###
-		# to pick the next word
-		# 1. pick a word at random
-		# 2. form the bigram from that word and the previous word
-		# 3. find the probability of that bigram
-		# 4. if that probability is smaller than a random number between 0 and 1, we keep that word. Otherwise, start over.
-		###
-		
-		if len(sentence_list) == 0:
-			all_possible_bigram_keys = list(model.keys())
-		else:
-			all_possible_bigram_keys = find_all_similar_bigrams(model, sentence_list[-1])
-		
-		found_next_word = False
-		while not found_next_word:
+	sentence_list = [random.choice(list(model.keys()))[0]]
+	while sentence_list[-1] != "SB":
+		try:
+			next_bigram = random.choice(find_all_similar_bigrams(model, sentence_list[-1]))
 			max_prob = random.random()
-			next_bigram = random.choice(all_possible_bigram_keys)	
-			if model[next_bigram] <= max_prob:
+			if model[next_bigram] < max_prob:
 				sentence_list.append(next_bigram[1])
-				found_next_word = True
-				count += 1
-			limit += 1
+			else:
+				raise Exception
+		except:
+			next_bigram = random.choice(list(model.keys()))
+			sentence_list.append(next_bigram[0])
 	sentence = ' '.join(word for word in sentence_list[1:])
 	sentence = sentence.replace("SB", ".")
 	return sentence
