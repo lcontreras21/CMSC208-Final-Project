@@ -10,22 +10,21 @@ CMSC 208 - Final Project
 
 #Preprocess it: No capital letters and no punctuation.
 >>> processed_data = preprocess(mydata)
-#>>> len(processed_data)
 
 # getting bigram and unigram counts
 #>>> bigrams = faster_creation(get_bigrams, processed_data, 10000)
 #>>> unigrams = get_unigrams(processed_data)
 
-### To retrain the model, uncomment the next 6 inputs.
 # building the model
 #>>> model = bigram_model(faster_creation(get_bigrams, preprocess(mydata), 10000), get_unigrams(preprocess(mydata)))
 
-# writing the dictionary into a json file so that it doesnt take a minute to generate sentences each time.
+# writing the dictionary into a text file so that it doesnt take a minute to generate sentences each time.
 #>>> f = open('model.txt', 'w')
 #>>> f.write(str(model))
 #>>> f.close()
 
 ### The above are testing the individual components
+### To rebuild model, clear this comment and run. It will take around a minute to execute.
 # This brings it all together and makes it easier to retrain the model as well as input it into the file.
 #>>> retrain_model(mydata)
 
@@ -36,23 +35,30 @@ CMSC 208 - Final Project
 #>>> gls = generate_likely_sentence(model, 50)
 #>>> gls
 
-#>>> generate_random_sentence(model)
+>>> generate_random_sentence(model)
 
->>> easy_probability(model, "harry potter")
+>>> generate_random_sentence(model)
 
->>> smoothed_probability(processed_data, "What is the meaning of this.")
+>>> generate_random_sentence(model)
+
+>>> generate_random_sentence(model)
+
+>>> generate_random_sentence(model)
+
+>>> easy_probability(model, "harry potter the boy who lived")
+
+## Running this next command will also take a minute to run as the model needs to be regenerated. The output is a very low probability as opposed. 
+#>>> smoothed_probability(processed_data, "What is the meaning of this.")
 
 >>> end = time.process_time()
 >>> print(end-start)
 
-
-# read in data
 '''
 import random
 import ast
-import sys
 import re
 import io
+
 # reading in the files as a list of words and combining them into fdata
 def read_data():
 	fdata = []
@@ -70,7 +76,6 @@ def read_data():
 	return fdata
 
 # Preprocessing the data
-
 def preprocess(data):
 	processed_data = []
 	for word in data:
@@ -144,7 +149,7 @@ def bigram_model(bigrams, unigrams):
 		model[bigram] = bigrams[bigram] / unigrams[bigram[0]]
 	return model
 
-import codecs
+# function to train the model in one go that uses the above functions
 def retrain_model(data):
 	model = bigram_model(faster_creation(get_bigrams, preprocess(data), 10000), get_unigrams(preprocess(data)))
 	f = io.open('model.txt', 'w', encoding='utf-8')
@@ -159,27 +164,26 @@ def find_max_bigram(model, word):
 	for bigram in model:
 		if bigram[0] == word:
 			possible_bigram[bigram] = model[bigram]
-	
 	vals = list(possible_bigram.values())
 	keys = list(possible_bigram.keys())
 	return keys[vals.index(max(vals))]	
 
 ## building sentences based on random selection
 def generate_likely_sentence(model, length):
-	#Given a model and a length that is at least greater than 2, it will give back the most likely sentece based on a given starting word.
+	#Given a model and length, it will coninue producing sentences until it reaches the length limit.
 	copy_model = model #Copying just in case
-	
-	sentence_list = [random.choice(list(model.keys()))[0]]
+	sentence_list = [random.choice(list(model.keys()))[0]] #picking random word to start the sentence
 	count = 0
 	while count < length:
-		#Find the bigram with the highest probability given the first word.
+		#Find the bigram with the highest probability given the previous word.
 		max_bigram = find_max_bigram(copy_model, sentence_list[-1])
 		sentence_list += [max_bigram[1]]
 		copy_model.pop(max_bigram)
 		count += 1
-	sentence = ' '.join(word for word in sentence_list[1:])
+	sentence = ' '.join(word for word in sentence_list)
 	return sentence
 	
+# functions used to find all bigrams that contain the previous word in the sentence in other bigram pairs.
 def find_all_similar_bigrams(model, word):
 	possible_bigrams = []
 	for bigram in model:
@@ -187,8 +191,9 @@ def find_all_similar_bigrams(model, word):
 			possible_bigrams.append(bigram)
 	return possible_bigrams
 
+# generates a string of words based on the previous word or random if that word has no other bigram pairs. The length is variable and won't stop until it reaches a sentence boundary.
 def generate_random_sentence(model):
-	sentence_list = [random.choice(list(model.keys()))[0]]
+	sentence_list = [random.choice(list(model.keys()))[0]] # pick rando word to start
 	while sentence_list[-1] != "SB":
 		try:
 			next_bigram = random.choice(find_all_similar_bigrams(model, sentence_list[-1]))
@@ -197,23 +202,22 @@ def generate_random_sentence(model):
 				sentence_list.append(next_bigram[1])
 			else:
 				raise Exception
-		except:
+		except: # pick random word if it can't continue from previous words
 			next_bigram = random.choice(list(model.keys()))
 			if model[next_bigram] < max_prob:
 				sentence_list.append(next_bigram[1])
 			else:
 				pass
-	sentence = ' '.join(word for word in sentence_list[1:])
+	sentence = ' '.join(word for word in sentence_list)
 	sentence = sentence[:-3].capitalize() + "."
 	return sentence
 
-### Generating sentence probability
-### Assuming all words are in the corpus
+# Generating sentence probability
+# Assuming all words are in the corpus
 def easy_probability(model, sentence):
 	sentence_list = preprocess(sentence.split())
 	sentence_bigrams = get_bigrams(sentence_list)
 	probability = 1
-	current_bigram = ()
 	for bigram in sentence_bigrams:
 		current_bigram = bigram
 		probability *= model[bigram]
@@ -234,9 +238,6 @@ def smoothed_probability(data, sentence):
 	# make model using the new counts
 
 	return easy_probability(bigram_model(model_bigrams, model_unigrams), sentence)
-
-
-
 
 def _test():
 		import doctest
