@@ -9,7 +9,7 @@ CMSC 208 - Final Project
 >>> mydata = read_data()
 
 #Preprocess it: No capital letters and no punctuation.
-#>>> processed_data = preprocess(mydata)
+>>> processed_data = preprocess(mydata)
 #>>> len(processed_data)
 
 # getting bigram and unigram counts
@@ -29,25 +29,18 @@ CMSC 208 - Final Project
 # This brings it all together and makes it easier to retrain the model as well as input it into the file.
 #>>> retrain_model(mydata)
 
->>> f = open('model.txt').read()
+>>> f = io.open("model.txt", "r", encoding='utf-8')
+>>> f = f.read()
 >>> model = ast.literal_eval(f)
 
->>> gls = generate_likely_sentence(model, 50)
->>> gls
-
-#>>> model = {('strange', 'just'): 0.007936507936507936, ('winky', 'remained'): 0.006711409395973154, ('at', 'uncle'): 0.0011547344110854503, ('temper', 'perhaps'): 0.018518518518518517, ('stay', 'at'): 0.06363636363636363, ('SB', 'fifth'): 4.444493827709197e-05, ('lockhart', 'speaking'): 0.0048543689320388345, ('buckbeak', 'resumed'): 0.010309278350515464}
+#>>> gls = generate_likely_sentence(model, 50)
+#>>> gls
 
 #>>> generate_random_sentence(model)
 
-#>>> generate_random_sentence(model)
+>>> easy_probability(model, "harry potter")
 
-#>>> generate_random_sentence(model)
-
-#>>> generate_random_sentence(model)
-
-#>>> generate_random_sentence(model)
-
-#>>> generate_random_sentence(model)
+>>> smoothed_probability(processed_data, "What is the meaning of this.")
 
 >>> end = time.process_time()
 >>> print(end-start)
@@ -59,6 +52,7 @@ import random
 import ast
 import sys
 import re
+import io
 # reading in the files as a list of words and combining them into fdata
 def read_data():
 	fdata = []
@@ -149,10 +143,12 @@ def bigram_model(bigrams, unigrams):
 	for bigram in bigrams: 
 		model[bigram] = bigrams[bigram] / unigrams[bigram[0]]
 	return model
-	
+
+import codecs
 def retrain_model(data):
 	model = bigram_model(faster_creation(get_bigrams, preprocess(data), 10000), get_unigrams(preprocess(data)))
-	f = open('model.txt', 'w')
+	f = io.open('model.txt', 'w', encoding='utf-8')
+	#modelutf8 = str(model).encode('UTF-8')
 	f.write(str(model))
 	f.close()
 	
@@ -210,6 +206,36 @@ def generate_random_sentence(model):
 	sentence = ' '.join(word for word in sentence_list[1:])
 	sentence = sentence[:-3].capitalize() + "."
 	return sentence
+
+### Generating sentence probability
+### Assuming all words are in the corpus
+def easy_probability(model, sentence):
+	sentence_list = preprocess(sentence.split())
+	sentence_bigrams = get_bigrams(sentence_list)
+	probability = 1
+	current_bigram = ()
+	for bigram in sentence_bigrams:
+		current_bigram = bigram
+		probability *= model[bigram]
+	return probability
+
+### harder way to factor probability using data smoothing to account for unknown words.
+def smoothed_probability(data, sentence):
+	combined_data = data + ["SB"] +  preprocess(sentence.split())
+	# retrain the model to account for bigrams in sentence
+	model_bigrams = faster_creation(get_bigrams, combined_data, 10000)
+	# add 1 to all bigram counts
+	for bigram in model_bigrams:
+		model_bigrams[bigram] += 1
+	model_unigrams = get_unigrams(combined_data)
+	# add the number of words in vocabulary to the unigram counts
+	for unigram in model_unigrams:
+			model_unigrams[unigram] += len(model_unigrams)
+	# make model using the new counts
+
+	return easy_probability(bigram_model(model_bigrams, model_unigrams), sentence)
+
+
 
 
 def _test():
